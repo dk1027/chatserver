@@ -1,0 +1,35 @@
+# initialize payload
+{
+    'user': 'your-user-name',
+    "channel": "team-channel"
+}
+
+
+# TODO: what happens if username already exists?
+# REVISIT: assume username won't conflict.
+
+# message payload
+{
+    "target_channel" :'username or channel name'
+    'msg': 'str' # TODO: Impose msg limit?
+}
+
+
+# message payload
+{
+    'target_channel' :'some-channel'
+    'msg': 'str' # TODO: Impose msg limit?
+}
+
+
+
+{"user": "Sponge Bob"}
+
+{
+    "target_user" :"Dean",
+    "msg": "hello!"
+}
+
+
+
+#TODO: renamed target_user -> target_channel

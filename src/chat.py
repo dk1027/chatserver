@@ -3,6 +3,7 @@ import json
 import websockets
 
 ACTIVE_USERS = dict()
+CHANNELS = dict()  # channel-name: list(user-name)
 
 # TODO: What happens when my chat partner doens't exist? went offline?
 # TODO: input validation...
@@ -23,12 +24,20 @@ async def unregister(this_user):
 
 def user_init(payload, websocket):
     """
-    payload: {'user': 'your-user-name'}
+    payload:
+    {
+        "user": "your-user-name",
+        "channel": "team-channel"
+    }
     """
     try:
-        ACTIVE_USERS[payload['user']] = websocket
+        user = payload['user']
+        ACTIVE_USERS[user] = websocket
+        if payload['channel'] not in CHANNELS:
+            CHANNELS[payload['channel']] = set()
+        CHANNELS[payload['channel']].add(user)
     except Exception as e:
-        print(f"malformed payload? {payload}")
+        print(f"user_init: malformed payload? {payload}")
 
 
 async def broadcast_msg(msg):
@@ -55,6 +64,28 @@ async def direct_msg(payload):
         print("ACTIVE_USERS", ACTIVE_USERS.keys())
 
 
+async def send_msg(payload):
+    """
+    {
+        "type": "channel|user"
+        "target_channel" :'username or channel name'
+        'msg': 'str' # TODO: Impose msg limit?
+    }
+    """
+    type = payload['type']
+    channel = payload['target_channel']
+    msg = payload['msg']
+    if type == 'channel':
+        members = CHANNELS[channel]  # usernames .. not ws
+        websockets = [ACTIVE_USERS[username] for username in ACTIVE_USERS.keys() if username in members]
+        await asyncio.wait([ws.send(msg) for ws in websockets])
+    else:
+        # TODO: fix direct msg
+        # check type == user
+        # pick out the websocket for the user
+        # send msg
+        raise Exception("Not yet implemented")
+
 async def hello(websocket, path):
     await register(websocket)
     try:
@@ -69,7 +100,7 @@ async def hello(websocket, path):
                 user_init(data, websocket)
                 this_user = data['user']
                 print(f'this user: {this_user}')
-                msg = f"new connection: active users {ACTIVE_USERS.keys()}"
+                msg = f"new connection: active users {ACTIVE_USERS.keys()}, channels: {CHANNELS}"
                 print(msg)
                 await broadcast_msg(msg)
                 need_init = False
